@@ -31,13 +31,16 @@ public class Player : MonoBehaviour
     // JUMPING /////////////////////////////////////////
     public float jumpHeight = 5f;
     public float wallJumpHeight = 3f;
+    public float superJumpHeight = 7f;
     public float wallBounceVelocity = 75f;
     float accAirborne = .1f;
-    public float wallJumpTime = .2f;
+    public float wallJumpWindow = .2f;
     float wallJumpTimer = 0;
     public float jumpBuffer = .5f;
     bool canDoubleJump = true;
-
+    float superJumpTimer;
+    float superJumpWindow = .2f;
+    bool canSuperJump = false;
 
     void Start()
     {
@@ -55,9 +58,11 @@ public class Player : MonoBehaviour
 
         ResetTimers();
 
-        UpdateTimers();
+        UpdateJumpTimers();
 
         if (Input.anyKey) { DoInputs(); }
+
+        SuperJump();
 
         controller.Move(velocity * Time.deltaTime);
 
@@ -74,7 +79,18 @@ public class Player : MonoBehaviour
         {
             if (controller.collisions.below)
             {
-                Jump(jumpHeight, tApex, velocity.x);
+                if (superJumpTimer > 0)
+                {
+                    canSuperJump = true;
+                    Jump(superJumpHeight, tApex, velocity.x);
+                }
+                else
+                {
+                    canSuperJump = false;
+                    Jump(jumpHeight, tApex, velocity.x);
+                }
+
+                //Jump(jumpHeight, tApex, velocity.x);
                 canDoubleJump = true;
             }
             else if (controller.collisions.above)
@@ -87,6 +103,7 @@ public class Player : MonoBehaviour
                 Jump(jumpHeight, tApex, velocity.x);
                 canDoubleJump = false;
             }
+
         }
 
         if (Input.GetKeyDown(KeyCode.Joystick1Button2) || Input.GetMouseButtonDown(1))
@@ -102,20 +119,37 @@ public class Player : MonoBehaviour
             Debug.Log("Wall");
         }
     }
-    void UpdateTimers()
+
+
+
+    void UpdateJumpTimers()
     {
+        if (controller.collisions.below && superJumpTimer > 0 && !controller.collisions.hurtSurface)
+        {
+            superJumpTimer -= Time.deltaTime;
+        }
+
+        if (superJumpTimer <= 0)
+        {
+            canSuperJump = false;
+        }
+
+
 
         if (wallJumpTimer > 0)
         {
             wallJumpTimer -= Time.deltaTime;
         }
+
     }
     void ResetTimers()
     {
         if ((controller.collisions.left || controller.collisions.right) && !controller.collisions.below)
         {
-            wallJumpTimer = wallJumpTime;
+            wallJumpTimer = wallJumpWindow;
         }
+
+
     }
     void CalcVelocity()
     {
@@ -154,6 +188,16 @@ public class Player : MonoBehaviour
         }
         velocity.y = (2 * _jumpHeight) / _tApex;
         Debug.Log(canDoubleJump);
+    }
+
+    void SuperJump()
+    {
+        if (Input.GetKeyDown(KeyCode.JoystickButton1) && controller.collisions.below && canSuperJump)
+        {
+            velocity.y = (2 * superJumpHeight) / tApex;
+            //jumpSound.pitch += .05f;
+            //jumpSound.Play();
+        }
     }
 
     void GlobalCollisions()
